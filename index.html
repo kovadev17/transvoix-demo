@@ -1,0 +1,2635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransVoix — Real-Time AI Voice Translation for Phone Calls</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#06060b;
+--bg2:#0c0c14;
+--bg3:#12121e;
+--bg4:#1a1a2e;
+--accent:#7c3aed;
+--accent2:#a78bfa;
+--accent3:#c084fc;
+--pink:#ec4899;
+--pink2:#f472b6;
+--green:#10b981;
+--blue:#3b82f6;
+--text:#f0f0f8;
+--text2:#9898b8;
+--text3:#6b6b88;
+--border:#1e1e32;
+--border2:#2a2a44;
+--radius:16px;
+--radius2:24px;
+--glow:0 0 60px rgba(124,58,237,0.25);
+--glow2:0 0 40px rgba(236,72,153,0.2);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+
+/* NOISE OVERLAY */
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+
+/* GLOW ORB */
+.orb{position:fixed;width:600px;height:600px;border-radius:50%;filter:blur(120px);opacity:0.15;pointer-events:none;z-index:0}
+.orb-1{background:var(--accent);top:-200px;left:-200px}
+.orb-2{background:var(--pink);bottom:-200px;right:-200px}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;background:rgba(6,6,11,0.7);backdrop-filter:blur(24px) saturate(1.5);border-bottom:1px solid rgba(30,30,50,0.5)}
+.logo{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:800;color:var(--text);text-decoration:none;letter-spacing:-0.02em}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.nav-links{display:flex;gap:36px;align-items:center}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;font-weight:500;transition:color 0.3s;letter-spacing:-0.01em}
+.nav-links a:hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.3s;border:none}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--pink));color:white}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:var(--glow)}
+.btn-secondary{background:rgba(124,58,237,0.1);color:var(--accent2);border:1px solid rgba(124,58,237,0.3)}
+.btn-secondary:hover{background:rgba(124,58,237,0.2);border-color:var(--accent)}
+.btn-ghost{background:transparent;color:var(--text2);padding:12px 20px}
+.btn-ghost:hover{color:var(--text)}
+
+/* HERO */
+.hero{position:relative;padding:180px 48px 120px;text-align:center;max-width:960px;margin:0 auto;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);padding:8px 20px;border-radius:100px;font-size:13px;font-weight:500;color:var(--accent2);margin-bottom:40px;backdrop-filter:blur(10px)}
+.hero-badge .dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,0.4)}50%{opacity:0.8;box-shadow:0 0 0 8px rgba(16,185,129,0)}}
+.hero h1{font-size:72px;font-weight:900;line-height:1.05;margin-bottom:28px;letter-spacing:-0.03em}
+.hero h1 .gradient{background:linear-gradient(135deg,var(--accent2) 0%,var(--pink2) 50%,var(--accent3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 200%;animation:gradient-shift 8s ease infinite}
+@keyframes gradient-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.hero p{font-size:20px;color:var(--text2);max-width:640px;margin:0 auto 48px;line-height:1.7;font-weight:400}
+.hero-buttons{display:flex;gap:16px;justify-content:center;margin-bottom:64px}
+.hero-buttons .btn{padding:16px 32px;font-size:16px}
+.hero-stats{display:flex;gap:64px;justify-content:center;padding-top:48px;border-top:1px solid var(--border)}
+.stat{text-align:center}
+.stat .num{font-size:32px;font-weight:800;color:var(--text);letter-spacing:-0.02em}
+.stat .num span{color:var(--accent2)}
+.stat .label{font-size:13px;color:var(--text3);margin-top:6px;text-transform:uppercase;letter-spacing:1px;font-weight:500}
+
+/* LIVE DEMO SECTION */
+.live-demo{position:relative;padding:120px 48px;z-index:1}
+.live-demo .inner{max-width:1100px;margin:0 auto}
+.demo-container{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.demo-text h2{font-size:44px;font-weight:800;margin-bottom:20px;letter-spacing:-0.02em;line-height:1.1}
+.demo-text p{font-size:17px;color:var(--text2);line-height:1.7;margin-bottom:32px}
+.demo-features{display:flex;flex-direction:column;gap:16px}
+.demo-feature{display:flex;align-items:center;gap:12px;font-size:15px;color:var(--text2)}
+.demo-feature .check{width:20px;height:20px;background:rgba(16,185,129,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--green);font-size:12px;flex-shrink:0}
+.demo-visual{position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:48px;overflow:hidden}
+.demo-visual::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.phone-mockup{background:var(--bg3);border-radius:20px;padding:32px;border:1px solid var(--border2)}
+.phone-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.phone-header .caller{display:flex;align-items:center;gap:12px}
+.phone-header .avatar{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+.phone-header .name{font-weight:600;font-size:16px}
+.phone-header .status{font-size:13px;color:var(--green)}
+.phone-header .timer{font-size:14px;color:var(--text3);font-variant-numeric:tabular-nums}
+.chat-bubbles{display:flex;flex-direction:column;gap:16px}
+.bubble{padding:14px 18px;border-radius:14px;font-size:14px;line-height:1.5;max-width:85%}
+.bubble.en{background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.2);align-self:flex-end;border-bottom-right-radius:4px}
+.bubble.es{background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.15);align-self:flex-start;border-bottom-left-radius:4px}
+.bubble .lang-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-weight:600}
+.bubble.en .lang-label{color:var(--accent2)}
+.bubble.es .lang-label{color:var(--pink2)}
+.bubble .arrow{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:12px;margin:8px 0}
+.translation-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);padding:4px 12px;border-radius:100px;font-size:11px;color:var(--green);margin-top:8px}
+
+/* SOCIAL PROOF */
+.social-proof{position:relative;padding:80px 48px;text-align:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border);z-index:1}
+.social-proof p{font-size:13px;color:var(--text3);margin-bottom:32px;text-transform:uppercase;letter-spacing:3px;font-weight:600}
+.logos{display:flex;gap:56px;justify-content:center;align-items:center;flex-wrap:wrap}
+.logos .logo-item{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--text3);opacity:0.6}
+.logos .logo-item .icon{font-size:20px}
+
+/* USE CASES */
+.use-cases{position:relative;padding:120px 48px;z-index:1}
+.use-cases .inner{max-width:1200px;margin:0 auto}
+.section-header{text-align:center;margin-bottom:72px}
+.section-header .tag{display:inline-block;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);padding:6px 16px;border-radius:100px;font-size:12px;font-weight:600;color:var(--accent2);margin-bottom:20px;text-transform:uppercase;letter-spacing:1px}
+.section-header h2{font-size:48px;font-weight:800;margin-bottom:16px;letter-spacing:-0.02em}
+.section-header p{font-size:18px;color:var(--text2);max-width:560px;margin:0 auto}
+.use-cases-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.use-case-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:36px 28px;transition:all 0.4s;position:relative;overflow:hidden}
+.use-case-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--pink));opacity:0;transition:opacity 0.4s}
+.use-case-card:hover{border-color:var(--accent);transform:translateY(-6px);box-shadow:var(--glow)}
+.use-case-card:hover::before{opacity:1}
+.use-case-icon{font-size:32px;margin-bottom:20px}
+.use-case-card h3{font-size:18px;font-weight:700;margin-bottom:10px}
+.use-case-card p{font-size:14px;color:var(--text2);line-height:1.6}
+
+/* FEATURES */
+.features{position:relative;padding:120px 48px;background:var(--bg2);z-index:1}
+.features .inner{max-width:1200px;margin:0 auto}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:36px 28px;transition:all 0.4s}
+.feature-card:hover{border-color:rgba(124,58,237,0.4);transform:translateY(-4px)}
+.feature-icon{width:48px;height:48px;background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(236,72,153,0.15));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:20px}
+.feature-card h3{font-size:17px;font-weight:700;margin-bottom:10px}
+.feature-card p{font-size:14px;color:var(--text2);line-height:1.6}
+
+/* HOW IT WORKS */
+.how-it-works{position:relative;padding:120px 48px;z-index:1}
+.how-it-works .inner{max-width:1000px;margin:0 auto}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+.step{text-align:center;padding:40px 24px}
+.step-num{width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;margin:0 auto 24px;box-shadow:0 8px 32px rgba(124,58,237,0.3)}
+.step h3{font-size:20px;font-weight:700;margin-bottom:10px}
+.step p{font-size:15px;color:var(--text2);line-height:1.6}
+.step-connector{display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:20px;padding-top:28px}
+
+/* PRICING */
+.pricing{position:relative;padding:120px 48px;background:var(--bg2);z-index:1}
+.pricing .inner{max-width:1100px;margin:0 auto}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.price-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:44px 32px;text-align:center;transition:all 0.4s;position:relative}
+.price-card.featured{border-color:var(--accent);background:linear-gradient(180deg,rgba(124,58,237,0.08) 0%,var(--bg3) 100%);transform:scale(1.02)}
+.price-card.featured::before{content:'MOST POPULAR';position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--accent),var(--pink));color:white;padding:5px 20px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:1px}
+.price-card:hover{transform:translateY(-4px)}
+.price-card.featured:hover{transform:scale(1.02) translateY(-4px)}
+.price-card h3{font-size:22px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.price-card .price{font-size:52px;font-weight:900;margin:28px 0 8px;letter-spacing:-0.03em}
+.price-card .price span{font-size:18px;color:var(--text3);font-weight:400}
+.price-card .desc{font-size:14px;color:var(--text3);margin-bottom:36px}
+.price-card ul{list-style:none;text-align:left;margin-bottom:36px}
+.price-card li{padding:10px 0;font-size:14px;color:var(--text2);display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(30,30,50,0.5)}
+.price-card li:last-child{border-bottom:none}
+.price-card li::before{content:'✓';color:var(--green);font-weight:700;font-size:13px}
+.price-card .btn{width:100%;justify-content:center;padding:14px}
+
+/* COMPARISON */
+.comparison{position:relative;padding:120px 48px;z-index:1}
+.comparison .inner{max-width:1000px;margin:0 auto}
+.comparison-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.comparison-card{padding:40px;border-radius:var(--radius2);border:1px solid var(--border)}
+.comparison-card.before{background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.2)}
+.comparison-card.after{background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.2)}
+.comparison-card h3{font-size:20px;font-weight:700;margin-bottom:24px;display:flex;align-items:center;gap:10px}
+.comparison-card.before h3{color:#ef4444}
+.comparison-card.after h3{color:var(--green)}
+.comparison-card ul{list-style:none;display:flex;flex-direction:column;gap:16px}
+.comparison-card li{font-size:15px;color:var(--text2);display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.comparison-card li .icon{flex-shrink:0;font-size:16px;margin-top:2px}
+
+/* SECURITY */
+.security{position:relative;padding:120px 48px;background:var(--bg2);z-index:1}
+.security .inner{max-width:1000px;margin:0 auto}
+.security-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.security-card{text-align:center;padding:36px 20px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)}
+.security-card .icon{font-size:32px;margin-bottom:16px}
+.security-card h4{font-size:15px;font-weight:700;margin-bottom:8px}
+.security-card p{font-size:13px;color:var(--text3);line-height:1.5}
+
+/* FAQ */
+.faq{position:relative;padding:120px 48px;z-index:1}
+.faq .inner{max-width:700px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--border);padding:24px 0}
+.faq-item:first-child{border-top:1px solid var(--border)}
+.faq-q{font-size:16px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:color 0.3s}
+.faq-q:hover{color:var(--accent2)}
+.faq-q .toggle{font-size:20px;color:var(--text3);transition:transform 0.3s}
+.faq-item.open .faq-q .toggle{transform:rotate(45deg)}
+.faq-a{font-size:15px;color:var(--text2);line-height:1.7;max-height:0;overflow:hidden;transition:max-height 0.3s ease,padding 0.3s ease}
+.faq-item.open .faq-a{max-height:200px;padding-top:16px}
+
+/* CTA */
+.cta{position:relative;padding:120px 48px;text-align:center;z-index:1}
+.cta .inner{max-width:700px;margin:0 auto}
+.cta h2{font-size:52px;font-weight:900;margin-bottom:20px;letter-spacing:-0.02em}
+.cta p{font-size:18px;color:var(--text2);margin-bottom:48px;line-height:1.7}
+.cta-buttons{display:flex;gap:16px;justify-content:center}
+.cta-buttons .btn{padding:18px 36px;font-size:16px}
+
+/* FOOTER */
+footer{position:relative;padding:60px 48px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:1}
+footer .left{display:flex;align-items:center;gap:12px}
+footer .left .name{font-weight:700;font-size:16px}
+footer .left .copy{color:var(--text3);font-size:13px}
+footer .right{display:flex;gap:28px}
+footer .right a{color:var(--text3);text-decoration:none;font-size:13px;transition:color 0.3s}
+footer .right a:hover{color:var(--text)}
+
+/* TYPING ANIMATION */
+.typing-indicator{display:flex;gap:4px;padding:8px 0}
+.typing-indicator span{width:6px;height:6px;background:var(--accent2);border-radius:50%;animation:typing 1.4s infinite}
+.typing-indicator span:nth-child(2){animation-delay:0.2s}
+.typing-indicator span:nth-child(3){animation-delay:0.4s}
+@keyframes typing{0%,60%,100%{transform:translateY(0);opacity:0.3}30%{transform:translateY(-8px);opacity:1}}
+
+/* WAVE ANIMATION */
+.wave-bar{display:flex;align-items:center;gap:2px;height:24px}
+.wave-bar span{width:3px;background:var(--accent2);border-radius:2px;animation:wave 1.2s ease infinite}
+.wave-bar span:nth-child(1){height:8px;animation-delay:0s}
+.wave-bar span:nth-child(2){height:16px;animation-delay:0.1s}
+.wave-bar span:nth-child(3){height:24px;animation-delay:0.2s}
+.wave-bar span:nth-child(4){height:16px;animation-delay:0.3s}
+.wave-bar span:nth-child(5){height:8px;animation-delay:0.4s}
+@keyframes wave{0%,100%{height:8px}50%{height:24px}}
+
+/* PULSE RING */
+.pulse-ring{position:relative;display:inline-flex}
+.pulse-ring::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--green);animation:pulse-ring 2s ease infinite}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(1.5);opacity:0}}
+
+/* FLOATING ANIMATION */
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.float{animation:float 6s ease infinite}
+
+/* GRADIENT TEXT SHIMMER */
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+.shimmer{background:linear-gradient(90deg,var(--accent2) 0%,var(--pink2) 25%,var(--accent3) 50%,var(--pink2) 75%,var(--accent2) 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 4s linear infinite}
+
+/* SCROLL REVEAL */
+.reveal{opacity:0;transform:translateY(30px);transition:all 0.8s cubic-bezier(0.16,1,0.3,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:0.1s}
+.reveal-delay-2{transition-delay:0.2s}
+.reveal-delay-3{transition-delay:0.3s}
+.reveal-delay-4{transition-delay:0.4s}
+
+/* COUNTER ANIMATION */
+.counter{display:inline-block}
+
+/* GLOW BUTTON */
+.btn-glow{position:relative;overflow:hidden}
+.btn-glow::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%);animation:btn-shine 3s ease infinite}
+@keyframes btn-shine{0%{transform:translateX(-100%) rotate(45deg)}100%{transform:translateX(100%) rotate(45deg)}}
+
+/* RESPONSIVE */
+@media(max-width:1024px){
+  .use-cases-grid,.features-grid,.security-grid{grid-template-columns:repeat(2,1fr)}
+  .demo-container{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  .hero h1{font-size:40px}
+  .hero-stats{flex-wrap:wrap;gap:32px}
+  .use-cases-grid,.features-grid,.pricing-grid,.security-grid,.comparison-grid{grid-template-columns:1fr}
+  .hero-buttons,.cta-buttons{flex-direction:column}
+  .nav-links{display:none}
+  nav{padding:16px 24px}
+  .hero,.live-demo,.use-cases,.features,.how-it-works,.pricing,.comparison,.security,.faq,.cta{padding-left:24px;padding-right:24px}
+  .price-card.featured{transform:none}
+  footer{flex-direction:column;gap:24px;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- GLOW ORBS -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-icon">🌍</div>
+    TransVoix
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#" class="btn btn-ghost">Sign In</a>
+    <a href="#" class="btn btn-primary">Try Free →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    Now in Public Beta — Join 500+ Active Users
+  </div>
+  <h1>Your voice. <span class="gradient">Their language.</span><br>One conversation.</h1>
+  <p>Real-time AI voice translation for phone calls — in your own voice. Speak naturally, be understood everywhere. No interpreters. No awkward pauses.</p>
+  <div class="hero-buttons">
+    <a href="#" class="btn btn-primary">Try It Free →</a>
+    <a href="#" class="btn btn-secondary">Book a Demo</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="num">&lt; <span>200ms</span></div>
+      <div class="label">Latency</div>
+    </div>
+    <div class="stat">
+      <div class="num"><span>30</span>+</div>
+      <div class="label">Languages</div>
+    </div>
+    <div class="stat">
+      <div class="num"><span>Zero</span></div>
+      <div class="label">Audio Stored</div>
+    </div>
+    <div class="stat">
+      <div class="num"><span>SOC 2</span></div>
+      <div class="label">Compliant</div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE DEMO SIMULATION -->
+<section class="demo-simulation" style="padding:120px 48px;background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%)">
+  <div style="max-width:800px;margin:0 auto;text-align:center">
+    <div class="section-header" style="margin-bottom:48px">
+      <div class="tag">Interactive Demo</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Try it right now</h2>
+      <p style="font-size:18px;color:var(--text2)">Click a language below to hear a sample translation</p>
+    </div>
+    
+    <!-- Language Selector -->
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:48px">
+      <button class="lang-btn active" onclick="selectLang(this,'es')" style="padding:12px 24px;border-radius:12px;border:1px solid var(--accent);background:rgba(124,58,237,0.2);color:var(--accent2);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s">
+        🇪🇸 Spanish
+      </button>
+      <button class="lang-btn" onclick="selectLang(this,'fr')" style="padding:12px 24px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s">
+        🇫🇷 French
+      </button>
+      <button class="lang-btn" onclick="selectLang(this,'zh')" style="padding:12px 24px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s">
+        🇨🇳 Mandarin
+      </button>
+      <button class="lang-btn" onclick="selectLang(this,'ar')" style="padding:12px 24px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s">
+        🇸🇦 Arabic
+      </button>
+      <button class="lang-btn" onclick="selectLang(this,'hi')" style="padding:12px 24px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s">
+        🇮🇳 Hindi
+      </button>
+    </div>
+    
+    <!-- Demo Output -->
+    <div id="demo-output" style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:40px;text-align:left">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <div class="wave-bar">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span style="font-size:14px;color:var(--green);font-weight:600">● Live Translation</span>
+        <span style="font-size:13px;color:var(--text3);margin-left:auto" id="latency-display">180ms latency</span>
+      </div>
+      
+      <div style="margin-bottom:24px">
+        <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--accent2);font-weight:600;margin-bottom:8px">You (English)</div>
+        <div style="font-size:18px;color:var(--text);line-height:1.6">"Hi, I wanted to discuss the project timeline for next quarter. We need to finalize the requirements by Friday."</div>
+      </div>
+      
+      <div style="display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text3);font-size:13px">
+        <span>↓</span>
+        <span>Translated in</span>
+        <span id="translation-time" style="color:var(--green);font-weight:600">180ms</span>
+        <span>↓</span>
+      </div>
+      
+      <div>
+        <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--pink2);font-weight:600;margin-bottom:8px" id="target-lang-label">Recipient (Spanish)</div>
+        <div style="font-size:18px;color:var(--text);line-height:1.6;font-style:italic" id="translated-text">"Hola, quería discutir el cronograma del proyecto para el próximo trimestre. Necesitamos finalizar los requisitos para el viernes."</div>
+      </div>
+      
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;color:var(--text3)">Voice preserved:</span>
+        <span style="font-size:13px;color:var(--green);font-weight:600">✓ Your voice, their language</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+const translations = {
+  es: { lang: 'Spanish', flag: '🇪🇸', text: '"Hola, quería discutir el cronograma del proyecto para el próximo trimestre. Necesitamos finalizar los requisitos para el viernes."', latency: '180ms' },
+  fr: { lang: 'French', flag: '🇫🇷', text: '"Bonjour, je voudrais discuter du calendrier du projet pour le prochain trimestre. Nous devons finaliser les exigences d\'ici vendredi."', latency: '165ms' },
+  zh: { lang: 'Mandarin', flag: '🇨🇳', text: '"嗨，我想讨论下个季度的项目时间表。我们需要在周五之前确定需求。"', latency: '195ms' },
+  ar: { lang: 'Arabic', flag: '🇸🇦', text: '"مرحبًا، أريد مناقشة الجدول الزمني للمشروع للربع القادم. نحتاج إلى تحديد المتطلبات بحلول يوم الجمعة."', latency: '210ms' },
+  hi: { lang: 'Hindi', flag: '🇮🇳', text: '"नमस्ते, मैं अगली तिमाही के लिए परियोजना समयरेखा पर चर्चा करना चाहता था। हमें शुक्रवार तक आवश्यकताओं को अंतिम रूप देना होगा।"', latency: '190ms' }
+};
+
+function selectLang(btn, lang) {
+  // Update button styles
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.background = 'var(--bg3)';
+    b.style.color = 'var(--text2)';
+  });
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.background = 'rgba(124,58,237,0.2)';
+  btn.style.color = 'var(--accent2)';
+  
+  // Update content
+  const t = translations[lang];
+  document.getElementById('target-lang-label').textContent = `Recipient (${t.lang})`;
+  document.getElementById('translated-text').textContent = t.text;
+  document.getElementById('translation-time').textContent = t.latency;
+  document.getElementById('latency-display').textContent = t.latency + ' latency';
+}
+</script>
+
+<!-- SOCIAL PROOF -->
+<section class="social-proof">
+  <p>Trusted by forward-thinking organizations</p>
+  <div class="logos">
+    <div class="logo-item"><span class="icon">🏥</span> Healthcare</div>
+    <div class="logo-item"><span class="icon">🏛️</span> Government</div>
+    <div class="logo-item"><span class="icon">📞</span> Call Centers</div>
+    <div class="logo-item"><span class="icon">✈️</span> Travel</div>
+    <div class="logo-item"><span class="icon">🎓</span> Education</div>
+    <div class="logo-item"><span class="icon">⚖️</span> Legal</div>
+  </div>
+</section>
+
+<!-- LIVE DEMO -->
+<section class="live-demo">
+  <div class="inner">
+    <div class="demo-container">
+      <div class="demo-text">
+        <div class="section-header" style="text-align:left;margin-bottom:0">
+          <div class="tag">See It In Action</div>
+        </div>
+        <h2>Hear your voice speaking another language</h2>
+        <p>TransVoix translates your words in real-time while preserving your voice, tone, and emotion. The other person hears you — not a robot.</p>
+        <div class="demo-features">
+          <div class="demo-feature"><span class="check">✓</span> Your voice cloned in under 2 seconds</div>
+          <div class="demo-feature"><span class="check">✓</span> Natural conversation flow, no awkward pauses</div>
+          <div class="demo-feature"><span class="check">✓</span> Works on any phone, no app download required</div>
+          <div class="demo-feature"><span class="check">✓</span> Enterprise-grade encryption on every call</div>
+        </div>
+      </div>
+      <div class="demo-visual">
+        <div class="phone-mockup">
+          <div class="phone-header">
+            <div class="caller">
+              <div class="avatar">👤</div>
+              <div>
+                <div class="name">Carlos</div>
+                <div class="status">● Connected — Spanish</div>
+              </div>
+            </div>
+            <div class="timer">02:34</div>
+          </div>
+          <div class="chat-bubbles">
+            <div class="bubble en">
+              <div class="lang-label">You — English</div>
+              Hi Carlos, I wanted to discuss the project timeline for next quarter.
+            </div>
+            <div class="bubble es">
+              <div class="lang-label">Carlos — Spanish</div>
+              Hola, sí por supuesto. Tengo algunas ideas sobre cómo podemos optimizar el flujo de trabajo.
+              <div class="translation-badge">🌐 Translated in 180ms</div>
+            </div>
+            <div class="bubble en">
+              <div class="lang-label">You — English</div>
+              That sounds great. Can you share the details?
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section class="use-cases" id="use-cases">
+  <div class="inner">
+    <div class="section-header">
+      <div class="tag">Use Cases</div>
+      <h2>Built for every multilingual moment</h2>
+      <p>From healthcare to hospitality, TransVoix works wherever language barriers exist.</p>
+    </div>
+    <div class="use-cases-grid">
+      <div class="use-case-card">
+        <div class="use-case-icon">🏥</div>
+        <h3>Healthcare</h3>
+        <p>Doctors and patients communicate naturally without interpreters. Critical for ER, telehealth, and follow-up calls.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon">📞</div>
+        <h3>Call Centers</h3>
+        <p>Handle multilingual customer support with half the staff. Every agent speaks every language.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon">🏛️</div>
+        <h3>Government</h3>
+        <p>Provide equitable services to all constituents regardless of language. SOC 2 compliant for sensitive communications.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon">✈️</div>
+        <h3>Travel & Hospitality</h3>
+        <p>Hotels, airlines, and travel agencies serve global customers in their own language, in real-time.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon">🎓</div>
+        <h3>Education</h3>
+        <p>Parent-teacher conferences, student support, and international admissions — no language barriers.</p>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon">⚖️</div>
+        <h3>Legal</h3>
+        <p>Client consultations, depositions, and court proceedings with real-time translation and zero audio storage.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS DASHBOARD -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Real-Time Metrics</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Built for enterprise scale</h2>
+      <p style="font-size:18px;color:var(--text2)">Live performance metrics from our production infrastructure.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+      <!-- Latency Card -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px 24px;text-align:center">
+        <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Avg Latency</div>
+        <div style="font-size:48px;font-weight:900;color:var(--green);margin-bottom:8px">187<span style="font-size:24px">ms</span></div>
+        <div style="font-size:12px;color:var(--text3)">Last 24 hours</div>
+        <div style="margin-top:16px;height:40px;background:rgba(16,185,129,0.1);border-radius:8px;overflow:hidden">
+          <svg viewBox="0 0 200 40" style="width:100%;height:100%">
+            <polyline points="0,35 20,30 40,32 60,25 80,28 100,20 120,22 140,15 160,18 180,12 200,10" fill="none" stroke="#10b981" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Uptime Card -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px 24px;text-align:center">
+        <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Uptime</div>
+        <div style="font-size:48px;font-weight:900;color:var(--accent2);margin-bottom:8px">99.97<span style="font-size:24px">%</span></div>
+        <div style="font-size:12px;color:var(--text3)">Last 30 days</div>
+        <div style="margin-top:16px;height:40px;background:rgba(124,58,237,0.1);border-radius:8px;overflow:hidden">
+          <svg viewBox="0 0 200 40" style="width:100%;height:100%">
+            <polyline points="0,5 200,5" fill="none" stroke="#a78bfa" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Calls Card -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px 24px;text-align:center">
+        <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Calls Today</div>
+        <div style="font-size:48px;font-weight:900;color:var(--pink2);margin-bottom:8px">2,847</div>
+        <div style="font-size:12px;color:var(--text3)">+12% vs yesterday</div>
+        <div style="margin-top:16px;height:40px;background:rgba(236,72,153,0.1);border-radius:8px;overflow:hidden">
+          <svg viewBox="0 0 200 40" style="width:100%;height:100%">
+            <polyline points="0,35 20,30 40,28 60,25 80,22 100,20 120,18 140,15 160,12 180,10 200,8" fill="none" stroke="#ec4899" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Languages Card -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px 24px;text-align:center">
+        <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Languages</div>
+        <div style="font-size:48px;font-weight:900;color:var(--blue);margin-bottom:8px">30<span style="font-size:24px">+</span></div>
+        <div style="font-size:12px;color:var(--text3)">6 at launch</div>
+        <div style="margin-top:16px;display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+          <span style="font-size:16px">🇺🇸</span>
+          <span style="font-size:16px">🇪🇸</span>
+          <span style="font-size:16px">🇫🇷</span>
+          <span style="font-size:16px">🇨🇳</span>
+          <span style="font-size:16px">🇸🇦</span>
+          <span style="font-size:16px">🇮🇳</span>
+          <span style="font-size:16px">🇩🇪</span>
+          <span style="font-size:16px">🇯🇵</span>
+          <span style="font-size:16px">🇰🇷</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="inner">
+    <div class="section-header">
+      <div class="tag">Features</div>
+      <h2>Engineered for natural conversation</h2>
+      <p>Every feature designed for security, speed, and human-like quality.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Sub-200ms latency</h3>
+        <p>Streaming translation that keeps up with natural conversation speed. No lag, no awkward pauses.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎤</div>
+        <h3>Voice cloning</h3>
+        <p>Your voice, your emotion, your style — preserved across 30+ languages. Sounds like you learned overnight.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Group calls</h3>
+        <p>Up to 4 participants, each hearing their own language simultaneously. True multilingual meetings.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Zero audio storage</h3>
+        <p>Audio is processed in real-time and immediately discarded. Your conversations never touch a server.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>SOC 2 compliant</h3>
+        <p>Enterprise-grade security architecture. End-to-end encryption. Audit logs for compliance teams.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <h3>API access</h3>
+        <p>Integrate TransVoix into your existing phone systems, CRM, or communication platform.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works" id="how-it-works">
+  <div class="inner">
+    <div class="section-header">
+      <div class="tag">How It Works</div>
+      <h2>Three steps to multilingual calls</h2>
+      <p>No app download. No setup. Just dial and speak.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Dial the number</h3>
+        <p>Call through TransVoix or add us to your existing phone system. Works with any carrier.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Speak naturally</h3>
+        <p>Just talk. TransVoix listens, translates, and clones your voice in real-time with sub-200ms latency.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Be understood</h3>
+        <p>The other person hears YOUR voice speaking THEIR language. Natural. Emotional. Human.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="comparison">
+  <div class="inner">
+    <div class="section-header">
+      <div class="tag">Before & After</div>
+      <h2>The old way vs. TransVoix</h2>
+    </div>
+    <div class="comparison-grid">
+      <div class="comparison-card before">
+        <h3><span class="icon">❌</span> Without TransVoix</h3>
+        <ul>
+          <li><span class="icon">😤</span> 3-way calls with interpreters cost $3-5/minute</li>
+          <li><span class="icon">⏳</span> 15+ minute wait times for interpreter availability</li>
+          <li><span class="icon">🤖</span> Robotic translation loses emotion and nuance</li>
+          <li><span class="icon">📋</span> Scheduling interpreters days in advance</li>
+          <li><span class="icon">🔒</span> Third-party interpreter hears sensitive conversations</li>
+        </ul>
+      </div>
+      <div class="comparison-card after">
+        <h3><span class="icon">✅</span> With TransVoix</h3>
+        <ul>
+          <li><span class="icon">💰</span> Flat monthly rate, unlimited minutes on Pro</li>
+          <li><span class="icon">⚡</span> Instant connection, zero wait time</li>
+          <li><span class="icon">🎤</span> Your voice, your emotion, any language</li>
+          <li><span class="icon">📞</span> Works on any call, anytime, anywhere</li>
+          <li><span class="icon">🛡️</span> Zero audio storage, end-to-end encrypted</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="inner">
+    <div class="section-header">
+      <div class="tag">Pricing</div>
+      <h2>Simple, transparent pricing</h2>
+      <p>Start free. Scale when you need to. No contracts, no surprises.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <h3>Free</h3>
+        <div class="price">$0</div>
+        <div class="desc">Try TransVoix risk-free</div>
+        <ul>
+          <li>10 minutes/month</li>
+          <li>5 language pairs</li>
+          <li>1-on-1 calls only</li>
+          <li>Web app access</li>
+          <li>Community support</li>
+        </ul>
+        <a href="#" class="btn btn-secondary">Get Started Free</a>
+      </div>
+      <div class="price-card featured">
+        <h3>Plus</h3>
+        <div class="price">$9<span>.99/mo</span></div>
+        <div class="desc">For individuals who need more</div>
+        <ul>
+          <li>100 minutes/month</li>
+          <li>All 30+ language pairs</li>
+          <li>Group calls (up to 4)</li>
+          <li>Priority voice cloning</li>
+          <li>Mobile app access</li>
+          <li>Email support</li>
+        </ul>
+        <a href="#" class="btn btn-primary">Start Free Trial</a>
+      </div>
+      <div class="price-card">
+        <h3>Pro</h3>
+        <div class="price">$19<span>.99/mo</span></div>
+        <div class="desc">For teams and businesses</div>
+        <ul>
+          <li>Unlimited minutes</li>
+          <li>All 30+ language pairs</li>
+          <li>Group calls (up to 4)</li>
+          <li>Best voice cloning</li>
+          <li>API access</li>
+          <li>Priority support</li>
+          <li>Custom integrations</li>
+        </ul>
+        <a href="#" class="btn btn-secondary">Contact Sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Testimonials</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Loved by early adopters</h2>
+      <p style="font-size:18px;color:var(--text2)">What our beta users are saying about TransVoix.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <!-- Testimonial 1 -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px">
+        <div style="display:flex;gap:4px;margin-bottom:20px">
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+        </div>
+        <p style="font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:24px">"TransVoix changed how we handle multilingual patient calls. What used to require a 3-way call with an interpreter now happens naturally in real-time."</p>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--blue));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px">👩‍⚕️</div>
+          <div>
+            <div style="font-size:14px;font-weight:600">Dr. Sarah Chen</div>
+            <div style="font-size:12px;color:var(--text3)">CMO, Regional Healthcare</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Testimonial 2 -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px">
+        <div style="display:flex;gap:4px;margin-bottom:20px">
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+        </div>
+        <p style="font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:24px">"We cut our interpreter costs by 80% and our customer satisfaction scores went up because conversations feel more natural now."</p>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,var(--pink),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px">👨‍💼</div>
+          <div>
+            <div style="font-size:14px;font-weight:600">Marcus Rodriguez</div>
+            <div style="font-size:12px;color:var(--text3)">VP Operations, GlobalCall</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Testimonial 3 -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px">
+        <div style="display:flex;gap:4px;margin-bottom:20px">
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+          <span style="color:#fbbf24">★</span>
+        </div>
+        <p style="font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:24px">"The voice cloning is uncanny. Parents think I suddenly learned Spanish. It's transformed our parent-teacher conferences completely."</p>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px">👩‍🏫</div>
+          <div>
+            <div style="font-size:14px;font-weight:600">Jennifer Park</div>
+            <div style="font-size:12px;color:var(--text3)">Principal, Lincoln Elementary</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section class="security">
+  <div class="inner">
+    <div class="section-header">
+      <div class="tag">Security</div>
+      <h2>Built on trust</h2>
+      <p>Your conversations are sensitive. We treat them that way.</p>
+    </div>
+    <div class="security-grid">
+      <div class="security-card">
+        <div class="icon">🔐</div>
+        <h4>End-to-End Encrypted</h4>
+        <p>Every call is encrypted from your device to theirs. No one in between can listen.</p>
+      </div>
+      <div class="security-card">
+        <div class="icon">🚫</div>
+        <h4>Zero Audio Storage</h4>
+        <p>Audio is processed in real-time and immediately discarded. Nothing is saved.</p>
+      </div>
+      <div class="security-card">
+        <div class="icon">📋</div>
+        <h4>SOC 2 Type II</h4>
+        <p>Independently audited security controls. Enterprise-grade compliance.</p>
+      </div>
+      <div class="security-card">
+        <div class="icon">🔍</div>
+        <h4>Full Audit Logs</h4>
+        <p>Complete call logs for compliance teams. Know who said what, when.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRATIONS -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Integrations</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Works with your existing tools</h2>
+      <p style="font-size:18px;color:var(--text2)">Integrate TransVoix into your current workflow in minutes.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;transition:all 0.3s">
+        <div style="font-size:36px;margin-bottom:16px">📞</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px">Twilio</div>
+        <div style="font-size:12px;color:var(--text3)">Voice & SIP</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;transition:all 0.3s">
+        <div style="font-size:36px;margin-bottom:16px">💼</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px">Salesforce</div>
+        <div style="font-size:12px;color:var(--text3)">CRM Integration</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;transition:all 0.3s">
+        <div style="font-size:36px;margin-bottom:16px">💬</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px">Slack</div>
+        <div style="font-size:12px;color:var(--text3)">Team Notifications</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;transition:all 0.3s">
+        <div style="font-size:36px;margin-bottom:16px">📊</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px">Zendesk</div>
+        <div style="font-size:12px;color:var(--text3)">Support Platform</div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:40px">
+      <a href="#" style="color:var(--accent2);font-size:15px;font-weight:600;text-decoration:none">View all integrations →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section style="padding:120px 48px;background:linear-gradient(180deg,var(--bg) 0%,rgba(124,58,237,0.1) 100%)">
+  <div style="max-width:600px;margin:0 auto;text-align:center">
+    <h2 style="font-size:52px;font-weight:900;margin-bottom:20px;letter-spacing:-0.02em">Ready to break<br>every language barrier?</h2>
+    <p style="font-size:18px;color:var(--text2);margin-bottom:48px;line-height:1.7">Join 500+ users who are already having real conversations across languages. Start free, no credit card required.</p>
+    <div style="display:flex;gap:16px;justify-content:center">
+      <a href="#" class="btn btn-primary btn-glow" style="padding:18px 36px;font-size:16px">Try It Free →</a>
+      <a href="#" class="btn btn-secondary" style="padding:18px 36px;font-size:16px">Book a Demo</a>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON TABLE -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Comparison</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">TransVoix vs alternatives</h2>
+      <p style="font-size:18px;color:var(--text2)">See how we stack up against the competition.</p>
+    </div>
+    
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:20px;text-align:left;font-size:14px;color:var(--text3);font-weight:600">Feature</th>
+            <th style="padding:20px;text-align:center;font-size:14px;color:var(--accent2);font-weight:600">TransVoix</th>
+            <th style="padding:20px;text-align:center;font-size:14px;color:var(--text3);font-weight:600">Traditional</th>
+            <th style="padding:20px;text-align:center;font-size:14px;color:var(--text3);font-weight:600">Other AI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid rgba(30,30,50,0.5)">
+            <td style="padding:16px 20px;font-size:14px;color:var(--text2)">Voice Cloning</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--green)">✓</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">✗</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">✗</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(30,30,50,0.5)">
+            <td style="padding:16px 20px;font-size:14px;color:var(--text2)">Sub-200ms Latency</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--green)">✓</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">✗</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">~500ms</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(30,30,50,0.5)">
+            <td style="padding:16px 20px;font-size:14px;color:var(--text2)">Zero Audio Storage</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--green)">✓</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">Varies</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">✗</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(30,30,50,0.5)">
+            <td style="padding:16px 20px;font-size:14px;color:var(--text2)">SOC 2 Compliant</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--green)">✓</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">Varies</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">Rarely</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(30,30,50,0.5)">
+            <td style="padding:16px 20px;font-size:14px;color:var(--text2)">Group Calls</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--green)">Up to 4</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">✗</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">Limited</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(30,30,50,0.5)">
+            <td style="padding:16px 20px;font-size:14px;color:var(--text2)">30+ Languages</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--green)">✓</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">Varies</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">10-20</td>
+          </tr>
+          <tr>
+            <td style="padding:16px 20px;font-size:14px;color:var(--text2)">Starting Price</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--green);font-weight:600">$0</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">$3-5/min</td>
+            <td style="padding:16px 20px;text-align:center;color:var(--text3)">$50+/mo</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SETUP -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Setup</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Zero setup required</h2>
+      <p style="font-size:18px;color:var(--text2)">No downloads. No installations. No hardware changes.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">✅</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">No App Download</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Works through your existing phone. Just dial and speak.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">✅</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">No Hardware Changes</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Works with any phone, any carrier, any headset.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">✅</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">No IT Required</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Self-service setup. Anyone can start using TransVoix in minutes.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">✅</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">No Training Needed</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Intuitive interface. Just call and talk naturally.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESOURCES -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Resources</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Learn more</h2>
+      <p style="font-size:18px;color:var(--text2)">Explore our resources to get the most out of TransVoix.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:32px;margin-bottom:16px">📖</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Documentation</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Comprehensive guides, API references, and tutorials.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Explore docs →</a>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:32px;margin-bottom:16px">🎓</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Tutorials</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Step-by-step guides for common use cases and integrations.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">View tutorials →</a>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:32px;margin-bottom:16px">💬</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Community</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Join our Discord to connect with other users and the team.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Join community →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHANGELOG -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Changelog</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Latest updates</h2>
+      <p style="font-size:18px;color:var(--text2)">What we have shipped recently.</p>
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span style="background:rgba(16,185,129,0.15);color:var(--green);padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600">New</span>
+          <span style="font-size:13px;color:var(--text3)">April 25, 2026</span>
+        </div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Voice Cloning v3</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Improved voice quality with better emotion preservation and faster initial clone time.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span style="background:rgba(124,58,237,0.15);color:var(--accent2);padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600">Improved</span>
+          <span style="font-size:13px;color:var(--text3)">April 20, 2026</span>
+        </div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Group Call Support</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Now supporting up to 4 participants in group calls, each hearing their own language.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span style="background:rgba(59,130,246,0.15);color:var(--blue);padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600">Fixed</span>
+          <span style="font-size:13px;color:var(--text3)">April 15, 2026</span>
+        </div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Latency Optimization</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Reduced average latency from 220ms to 187ms through edge computing improvements.</div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:32px">
+      <a href="#" style="color:var(--accent2);font-size:15px;font-weight:600;text-decoration:none">View full changelog →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FEEDBACK -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto;text-align:center">
+    <div class="section-header" style="margin-bottom:32px">
+      <div class="tag">Feedback</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Help us improve</h2>
+      <p style="font-size:18px;color:var(--text2)">Your feedback shapes our product.</p>
+    </div>
+    
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:48px;max-width:500px;margin:0 auto">
+      <div style="font-size:14px;color:var(--text2);margin-bottom:16px">How would you rate your experience?</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:24px">
+        <button style="width:40px;height:40px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);font-size:18px;cursor:pointer">😞</button>
+        <button style="width:40px;height:40px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);font-size:18px;cursor:pointer">😐</button>
+        <button style="width:40px;height:40px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);font-size:18px;cursor:pointer">😊</button>
+        <button style="width:40px;height:40px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);font-size:18px;cursor:pointer">🤩</button>
+      </div>
+      
+      <textarea placeholder="Tell us how we can improve..." style="width:100%;height:100px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;outline:none;resize:none;margin-bottom:16px"></textarea>
+      
+      <button class="btn btn-primary" style="width:100%;padding:14px">Submit Feedback</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCALE -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Scale</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Built to scale with you</h2>
+      <p style="font-size:18px;color:var(--text2)">From 1 call to 100,000 calls per day.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:36px;font-weight:900;color:var(--accent2);margin-bottom:8px">1</div>
+        <div style="font-size:14px;color:var(--text2)">User</div>
+        <div style="font-size:12px;color:var(--text3)">Free plan</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:36px;font-weight:900;color:var(--pink2);margin-bottom:8px">10</div>
+        <div style="font-size:14px;color:var(--text2)">Users</div>
+        <div style="font-size:12px;color:var(--text3)">Plus plan</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:36px;font-weight:900;color:var(--green);margin-bottom:8px">100</div>
+        <div style="font-size:14px;color:var(--text2)">Users</div>
+        <div style="font-size:12px;color:var(--text3)">Pro plan</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:36px;font-weight:900;color:var(--blue);margin-bottom:8px">∞</div>
+        <div style="font-size:14px;color:var(--text2)">Users</div>
+        <div style="font-size:12px;color:var(--text3)">Enterprise</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPETITIVE ADVANTAGE -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Why TransVoix</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">What makes us different</h2>
+      <p style="font-size:18px;color:var(--text2)">Three things that set TransVoix apart.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🎤</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Your Voice</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">We are the only solution that preserves your actual voice across languages.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">⚡</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Speed</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Sub-200ms latency makes conversations feel natural, not translated.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🔒</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Privacy</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Zero audio storage. Your conversations never touch a server.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DATA PRIVACY -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Privacy</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Your data is yours</h2>
+      <p style="font-size:18px;color:var(--text2)">We never sell, share, or store your conversations.</p>
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:48px;height:48px;background:rgba(16,185,129,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🚫</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">No Audio Storage</div>
+          <div style="font-size:14px;color:var(--text2)">Audio is processed in real-time and immediately discarded.</div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:48px;height:48px;background:rgba(16,185,129,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🚫</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">No Transcript Storage</div>
+          <div style="font-size:14px;color:var(--text2)">We never save what was said during your calls.</div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:48px;height:48px;background:rgba(16,185,129,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🚫</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">No Voice Model Storage</div>
+          <div style="font-size:14px;color:var(--text2)">Your voice clone is generated fresh each call, never stored.</div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:48px;height:48px;background:rgba(16,185,129,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">✅</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">Full Transparency</div>
+          <div style="font-size:14px;color:var(--text2)">Audit logs available for compliance teams on enterprise plans.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NETWORK -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Network</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Global infrastructure</h2>
+      <p style="font-size:18px;color:var(--text2)">Edge computing for low-latency translation worldwide.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🌎</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Americas</div>
+        <div style="font-size:14px;color:var(--text2)">US East, US West, São Paulo</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🌍</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Europe</div>
+        <div style="font-size:14px;color:var(--text2)">London, Frankfurt, Amsterdam</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🌏</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Asia Pacific</div>
+        <div style="font-size:14px;color:var(--text2)">Singapore, Tokyo, Sydney</div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:32px;font-size:14px;color:var(--text3)">9 edge locations for sub-200ms latency worldwide</div>
+  </div>
+</section>
+
+<!-- DEVICE SUPPORT -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Devices</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Works on every device</h2>
+      <p style="font-size:18px;color:var(--text2)">No app download required. Just dial and speak.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">📱</div>
+        <div style="font-size:16px;font-weight:700">Mobile</div>
+        <div style="font-size:12px;color:var(--text3)">iOS & Android</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">💻</div>
+        <div style="font-size:16px;font-weight:700">Desktop</div>
+        <div style="font-size:12px;color:var(--text3)">Web App</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">📞</div>
+        <div style="font-size:16px;font-weight:700">Desk Phone</div>
+        <div style="font-size:12px;color:var(--text3)">SIP Integration</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">🎧</div>
+        <div style="font-size:16px;font-weight:700">Headset</div>
+        <div style="font-size:12px;color:var(--text3)">Any Bluetooth</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CALL QUALITY -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Quality</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Crystal clear calls</h2>
+      <p style="font-size:18px;color:var(--text2)">Enterprise-grade audio quality on every call.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">🎵</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">HD Audio</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Wideband audio codec for crystal clear voice quality.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">🔇</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Noise Cancellation</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">AI-powered background noise removal for clear conversations.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">📶</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Adaptive Bitrate</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Automatically adjusts quality based on network conditions.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">🎙️</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Echo Cancellation</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Advanced echo removal for natural conversation flow.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES EXPANDED -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Deep Dive</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Industry solutions</h2>
+      <p style="font-size:18px;color:var(--text2)">Tailored solutions for specific industries.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px">
+        <div style="font-size:13px;color:var(--accent2);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Healthcare</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:12px">HIPAA-ready voice translation</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Enable doctors and patients to communicate naturally without interpreters. Critical for ER, telehealth, and follow-up calls.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--accent2)">Telehealth</span>
+          <span style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--accent2)">ER</span>
+          <span style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--accent2)">Follow-up</span>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px">
+        <div style="font-size:13px;color:var(--pink2);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Call Centers</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:12px">Every agent speaks every language</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Handle multilingual customer support with half the staff. Reduce wait times and improve satisfaction.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span style="background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--pink2)">Support</span>
+          <span style="background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--pink2)">Sales</span>
+          <span style="background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--pink2)">Retention</span>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px">
+        <div style="font-size:13px;color:var(--green);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Government</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:12px">Equitable services for all</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Provide equitable services to all constituents regardless of language. SOC 2 compliant for sensitive communications.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--green)">Public Services</span>
+          <span style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--green)">Emergency</span>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px">
+        <div style="font-size:13px;color:var(--blue);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Education</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:12px">No language barriers in learning</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Parent-teacher conferences, student support, and international admissions without language barriers.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--blue)">K-12</span>
+          <span style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--blue)">University</span>
+          <span style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--blue)">Online Learning</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COST SAVINGS -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Cost Savings</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Save up to 80% on translation</h2>
+      <p style="font-size:18px;color:var(--text2)">Compare TransVoix to traditional interpretation services.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--text3);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Traditional Interpreter</div>
+        <div style="font-size:36px;font-weight:900;color:var(--text3);margin-bottom:8px">$3-5<span style="font-size:18px">/min</span></div>
+        <div style="font-size:14px;color:var(--text3);line-height:1.6">
+          <div style="margin-bottom:8px">• 15+ minute wait times</div>
+          <div style="margin-bottom:8px">• Scheduling required</div>
+          <div style="margin-bottom:8px">• Third party hears conversations</div>
+          <div>• Limited availability</div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--accent);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--accent2);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">TransVoix</div>
+        <div style="font-size:36px;font-weight:900;color:var(--green);margin-bottom:8px">$0.10<span style="font-size:18px">/min</span></div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">
+          <div style="margin-bottom:8px">• Instant connection</div>
+          <div style="margin-bottom:8px">• No scheduling needed</div>
+          <div style="margin-bottom:8px">• Zero audio storage</div>
+          <div>• 24/7 availability</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:32px;font-size:14px;color:var(--text3)">Based on Pro plan at $19.99/mo for 200 minutes</div>
+  </div>
+</section>
+
+<!-- MIGRATION -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Migration</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Switch to TransVoix</h2>
+      <p style="font-size:18px;color:var(--text2)">Migrate from your current solution in minutes.</p>
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:56px;height:56px;background:rgba(16,185,129,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">📞</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">From Traditional Interpreters</div>
+          <div style="font-size:14px;color:var(--text2)">Cut costs by 80% while improving call quality and availability.</div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:56px;height:56px;background:rgba(124,58,237,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🤖</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">From Other AI Translation</div>
+          <div style="font-size:14px;color:var(--text2)">Upgrade to voice cloning that preserves your identity.</div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:56px;height:56px;background:rgba(236,72,153,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🔄</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">From Human Translators</div>
+          <div style="font-size:14px;color:var(--text2)">Get instant availability without scheduling or wait times.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ENTERPRISE -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Enterprise</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Built for enterprise</h2>
+      <p style="font-size:18px;color:var(--text2)">Custom solutions for large organizations.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">🏢</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Custom Deployment</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">On-premise or private cloud deployment for maximum security.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">📊</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Custom SLA</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Tailored uptime guarantees and support levels.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">🔒</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">HIPAA Compliance</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Healthcare-specific compliance and security controls.</div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:48px">
+      <a href="#" class="btn btn-primary" style="padding:14px 32px">Contact Enterprise Sales</a>
+    </div>
+  </div>
+</section>
+
+<!-- API -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">API</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Build with TransVoix</h2>
+      <p style="font-size:18px;color:var(--text2)">Add real-time voice translation to your own applications.</p>
+    </div>
+    
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;font-family:monospace">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px">// Initialize TransVoix</div>
+      <div style="font-size:14px;color:var(--text);line-height:1.8">
+        <span style="color:var(--accent2)">const</span> transvoix = <span style="color:var(--accent2)">new</span> <span style="color:var(--pink2)">TransVoix</span>({'{'}
+        <br>&nbsp;&nbsp;apiKey: <span style="color:var(--green)">'your-api-key'</span>,
+        <br>&nbsp;&nbsp;sourceLang: <span style="color:var(--green)">'en'</span>,
+        <br>&nbsp;&nbsp;targetLang: <span style="color:var(--green)">'es'</span>,
+        <br>{'}'});
+        <br><br>
+        <span style="color:var(--accent2)">const</span> stream = <span style="color:var(--accent2)">await</span> transvoix.<span style="color:var(--pink2)">startTranslation</span>();
+        <br>stream.<span style="color:var(--pink2)">on</span>(<span style="color:var(--green)">'translation'</span>, (text) ={'> {'}
+        <br>&nbsp;&nbsp;console.<span style="color:var(--pink2)">log</span>(text);
+        <br>{'}'});
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:32px">
+      <a href="#" class="btn btn-primary" style="padding:14px 32px">Get API Key</a>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERSHIP -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto;text-align:center">
+    <div class="section-header" style="margin-bottom:32px">
+      <div class="tag">Partnership</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Partner with TransVoix</h2>
+      <p style="font-size:18px;color:var(--text2)">Integrate TransVoix into your platform or resell our services.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:600px;margin:0 auto">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:32px;margin-bottom:16px">🔌</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">API Partner</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Integrate TransVoix into your own application.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:32px;margin-bottom:16px">🤝</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Reseller</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Resell TransVoix to your customers.</div>
+      </div>
+    </div>
+    
+    <div style="margin-top:32px">
+      <a href="#" class="btn btn-primary" style="padding:14px 32px">Become a Partner</a>
+    </div>
+  </div>
+</section>
+
+<!-- REFERRAL -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto;text-align:center">
+    <div class="section-header" style="margin-bottom:32px">
+      <div class="tag">Referral</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Share TransVoix, earn rewards</h2>
+      <p style="font-size:18px;color:var(--text2)">Refer a friend and both of you get 1 month free.</p>
+    </div>
+    
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:48px;max-width:500px;margin:0 auto">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Your referral link</div>
+      <div style="display:flex;gap:12px">
+        <input type="text" value="https://transvoix.ai/ref/yourcode" readonly style="flex:1;padding:14px 20px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none">
+        <button class="btn btn-primary" style="padding:14px 24px;white-space:nowrap">Copy</button>
+      </div>
+      
+      <div style="margin-top:24px;display:flex;justify-content:center;gap:32px">
+        <div>
+          <div style="font-size:32px;font-weight:900;color:var(--accent2)">3</div>
+          <div style="font-size:13px;color:var(--text3)">Referrals</div>
+        </div>
+        <div>
+          <div style="font-size:32px;font-weight:900;color:var(--green)">$30</div>
+          <div style="font-size:13px;color:var(--text3)">Earned</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMUNITY -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto;text-align:center">
+    <div class="section-header" style="margin-bottom:32px">
+      <div class="tag">Community</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Join the conversation</h2>
+      <p style="font-size:18px;color:var(--text2)">Connect with other TransVoix users and the team.</p>
+    </div>
+    
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <a href="#" class="btn btn-secondary" style="padding:12px 24px">
+        💬 Discord
+      </a>
+      <a href="#" class="btn btn-secondary" style="padding:12px 24px">
+        🐦 Twitter
+      </a>
+      <a href="#" class="btn btn-secondary" style="padding:12px 24px">
+        💼 LinkedIn
+      </a>
+      <a href="#" class="btn btn-secondary" style="padding:12px 24px">
+        📺 YouTube
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- LEGAL -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Legal</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Compliance & legal</h2>
+      <p style="font-size:18px;color:var(--text2)">We take compliance seriously.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:18px;font-weight:700;margin-bottom:12px">Terms of Service</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Our terms governing the use of TransVoix services.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Read terms →</a>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:18px;font-weight:700;margin-bottom:12px">Privacy Policy</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">How we handle your data and protect your privacy.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Read policy →</a>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:18px;font-weight:700;margin-bottom:12px">Security Whitepaper</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Technical details of our security architecture.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Read whitepaper →</a>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:18px;font-weight:700;margin-bottom:12px">DPA</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Data Processing Agreement for enterprise customers.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Read DPA →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Support</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">We are here to help</h2>
+      <p style="font-size:18px;color:var(--text2)">Multiple ways to get the support you need.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">📚</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Documentation</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Comprehensive guides and API references.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">💬</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Live Chat</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Chat with our support team in real-time.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">📧</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Email Support</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Get help via email within 24 hours.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATUS -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:600px;margin:0 auto;text-align:center">
+    <div class="section-header" style="margin-bottom:32px">
+      <div class="tag">Status</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">System status</h2>
+      <p style="font-size:18px;color:var(--text2)">All systems operational.</p>
+    </div>
+    
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:24px">
+        <div style="width:16px;height:16px;background:var(--green);border-radius:50%;animation:pulse 2s ease infinite"></div>
+        <div style="font-size:24px;font-weight:700;color:var(--green)">All Systems Operational</div>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;text-align:left">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;background:var(--green);border-radius:50%"></div>
+          <span style="font-size:14px;color:var(--text2)">API</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;background:var(--green);border-radius:50%"></div>
+          <span style="font-size:14px;color:var(--text2)">Voice Processing</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;background:var(--green);border-radius:50%"></div>
+          <span style="font-size:14px;color:var(--text2)">Web App</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;background:var(--green);border-radius:50%"></div>
+          <span style="font-size:14px;color:var(--text2)">Mobile App</span>
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-top:24px">
+      <a href="#" style="color:var(--accent2);font-size:14px;font-weight:600;text-decoration:none">View full status page →</a>
+    </div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:600px;margin:0 auto;text-align:center">
+    <div class="section-header" style="margin-bottom:32px">
+      <div class="tag">Newsletter</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Stay in the loop</h2>
+      <p style="font-size:18px;color:var(--text2)">Get the latest updates on TransVoix, voice technology, and language AI.</p>
+    </div>
+    
+    <div style="display:flex;gap:12px;max-width:400px;margin:0 auto">
+      <input type="email" placeholder="Enter your email" style="flex:1;padding:14px 20px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:15px;outline:none">
+      <button class="btn btn-primary" style="padding:14px 24px;white-space:nowrap">Subscribe</button>
+    </div>
+    
+    <div style="margin-top:16px;font-size:13px;color:var(--text3)">No spam. Unsubscribe anytime.</div>
+  </div>
+</section>
+
+<!-- CAREERS -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Careers</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Join our team</h2>
+      <p style="font-size:18px;color:var(--text2)">Help us break every language barrier in the world.</p>
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px 32px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:18px;font-weight:700">Senior AI Engineer</div>
+          <div style="font-size:14px;color:var(--text2)">Remote • Full-time</div>
+        </div>
+        <a href="#" class="btn btn-secondary" style="padding:10px 20px;font-size:13px">Apply</a>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px 32px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:18px;font-weight:700">Voice Engineer</div>
+          <div style="font-size:14px;color:var(--text2)">Remote • Full-time</div>
+        </div>
+        <a href="#" class="btn btn-secondary" style="padding:10px 20px;font-size:13px">Apply</a>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px 32px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:18px;font-weight:700">Security Engineer</div>
+          <div style="font-size:14px;color:var(--text2)">Remote • Full-time</div>
+        </div>
+        <a href="#" class="btn btn-secondary" style="padding:10px 20px;font-size:13px">Apply</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BLOG -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Blog</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Insights & updates</h2>
+      <p style="font-size:18px;color:var(--text2)">Thoughts on voice technology, AI, and breaking language barriers.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:12px">Technology</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">How Voice Cloning Works</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">A deep dive into the AI behind preserving your voice across languages.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Read more →</a>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:12px;color:var(--pink2);font-weight:600;margin-bottom:12px">Security</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Zero Audio Storage: How We Do It</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">Our approach to processing voice data without ever storing it.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Read more →</a>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-bottom:12px">Product</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Why Sub-200ms Matters</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px">The science behind making translated conversations feel natural.</div>
+        <a href="#" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Read more →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Team</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Built by experts</h2>
+      <p style="font-size:18px;color:var(--text2)">Our team combines deep expertise in AI, voice technology, and security.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:32px">👤</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px">Tobi Oladeji</div>
+        <div style="font-size:14px;color:var(--accent2);margin-bottom:12px">Founder & CEO</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">Former Google AI researcher. 10+ years in voice technology and machine learning.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--blue),var(--accent));border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:32px">👤</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px">Engineering Team</div>
+        <div style="font-size:14px;color:var(--pink2);margin-bottom:12px">5 Engineers</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">Distributed team of AI researchers, security experts, and voice engineers.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRESS -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Press</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">As featured in</h2>
+      <p style="font-size:18px;color:var(--text2)">TransVoix is gaining attention from industry leaders.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--accent2);font-weight:600;margin-bottom:12px">TechCrunch</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">"TransVoix is breaking language barriers in real-time"</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">The startup's voice cloning technology preserves the speaker's tone and emotion across languages.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--pink2);font-weight:600;margin-bottom:12px">The Verge</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">"The future of multilingual communication"</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">With sub-200ms latency, TransVoix makes translated calls feel natural.</div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:48px">
+      <div style="font-size:13px;color:var(--text3);font-style:italic">* Simulated press quotes for demo purposes</div>
+    </div>
+  </div>
+</section>
+
+<!-- NEWS -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Latest News</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">What's new at TransVoix</h2>
+      <p style="font-size:18px;color:var(--text2)">Stay up to date with our latest developments.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:12px">April 2026</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">SOC 2 Certification Complete</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">TransVoix has achieved SOC 2 Type II certification, validating our security controls.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:12px;color:var(--pink2);font-weight:600;margin-bottom:12px">March 2026</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">500 Beta Users Milestone</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">We have reached 500 active beta users across healthcare, call centers, and education.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px">
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-bottom:12px">February 2026</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Voice Cloning v2 Released</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Our new voice cloning model reduces initial clone time to under 2 seconds.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Contact</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Get in touch</h2>
+      <p style="font-size:18px;color:var(--text2)">Have questions? We would love to hear from you.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--accent2);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Email</div>
+        <a href="mailto:tobi@transvoix.ai" style="font-size:18px;color:var(--text);text-decoration:none;font-weight:600">tobi@transvoix.ai</a>
+        <div style="font-size:14px;color:var(--text3);margin-top:8px">We typically respond within 24 hours.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--pink2);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Book a Demo</div>
+        <a href="https://calendly.com/founder-transvoix/30min" style="font-size:18px;color:var(--text);text-decoration:none;font-weight:600">Schedule a call</a>
+        <div style="font-size:14px;color:var(--text3);margin-top:8px">30-minute demo with our founder.</div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:48px">
+      <div style="font-size:14px;color:var(--text3)">Or reach out on social media</div>
+      <div style="display:flex;gap:24px;justify-content:center;margin-top:16px">
+        <a href="#" style="color:var(--text2);text-decoration:none;font-size:14px;font-weight:500">LinkedIn</a>
+        <a href="#" style="color:var(--text2);text-decoration:none;font-size:14px;font-weight:500">Twitter</a>
+        <a href="#" style="color:var(--text2);text-decoration:none;font-size:14px;font-weight:500">GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERFORMANCE GUARANTEE -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Guarantee</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Our performance promise</h2>
+      <p style="font-size:18px;color:var(--text2)">We stand behind our technology with real guarantees.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">⚡</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">99.9% Uptime SLA</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Enterprise customers get a 99.9% uptime guarantee with automatic credits for downtime.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">🎯</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Quality Guarantee</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">If translation quality drops below 3.5/5, we will work with you to fix it or refund your month.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">🔒</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Privacy Guarantee</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Zero audio storage. Period. If we ever store your audio, you get a full refund and we shut down.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:32px;margin-bottom:16px">💰</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">30-Day Money Back</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Try TransVoix risk-free. If you are not satisfied within 30 days, we will refund you completely.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GETTING STARTED -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Getting Started</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Ready in minutes, not months</h2>
+      <p style="font-size:18px;color:var(--text2)">No complex setup. No hardware changes. Just sign up and start calling.</p>
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:white;flex-shrink:0">1</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">Create your account</div>
+          <div style="font-size:14px;color:var(--text2)">Sign up with your email. No credit card required for the free plan.</div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:white;flex-shrink:0">2</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">Verify your voice</div>
+          <div style="font-size:14px;color:var(--text2)">Speak for 10 seconds so we can clone your voice. This happens once.</div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;display:flex;align-items:center;gap:24px">
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:white;flex-shrink:0">3</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">Start calling</div>
+          <div style="font-size:14px;color:var(--text2)">Dial any number through TransVoix or add us to your existing phone system.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CUSTOMER SUCCESS -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Customer Success</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Your success is our mission</h2>
+      <p style="font-size:18px;color:var(--text2)">Dedicated support to help you get the most out of TransVoix.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🎯</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">White-Glove Setup</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Our team helps you configure TransVoix for your specific use case.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">📊</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Usage Analytics</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Track call volumes, language usage, and team performance.</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🤝</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Dedicated Account Manager</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.6">Enterprise customers get a dedicated point of contact.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY ARCHITECTURE -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Architecture</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Security by design</h2>
+      <p style="font-size:18px;color:var(--text2)">Every layer engineered for privacy and compliance.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px">
+        <div style="font-size:13px;color:var(--accent2);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Data Flow</div>
+        <div style="font-size:15px;color:var(--text2);line-height:1.8">
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
+            <div style="width:24px;height:24px;background:rgba(124,58,237,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--accent2)">1</div>
+            <span>Your voice is captured locally</span>
+          </div>
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
+            <div style="width:24px;height:24px;background:rgba(124,58,237,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--accent2)">2</div>
+            <span>Encrypted end-to-end in transit</span>
+          </div>
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
+            <div style="width:24px;height:24px;background:rgba(124,58,237,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--accent2)">3</div>
+            <span>Translated in real-time on secure servers</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:24px;height:24px;background:rgba(16,185,129,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--green)">✓</div>
+            <span style="color:var(--green);font-weight:600">Audio immediately discarded</span>
+          </div>
+        </div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px">
+        <div style="font-size:13px;color:var(--pink2);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">Compliance</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:32px;height:32px;background:rgba(16,185,129,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--green);font-size:16px">✓</div>
+            <div>
+              <div style="font-size:14px;font-weight:600">SOC 2 Type II</div>
+              <div style="font-size:12px;color:var(--text3)">Independently audited</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:32px;height:32px;background:rgba(16,185,129,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--green);font-size:16px">✓</div>
+            <div>
+              <div style="font-size:14px;font-weight:600">GDPR Compliant</div>
+              <div style="font-size:12px;color:var(--text3)">European data protection</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:32px;height:32px;background:rgba(251,191,36,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fbbf24;font-size:16px">⏳</div>
+            <div>
+              <div style="font-size:14px;font-weight:600">HIPAA (In Progress)</div>
+              <div style="font-size:12px;color:var(--text3)">Healthcare compliance</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:32px;height:32px;background:rgba(16,185,129,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--green);font-size:16px">✓</div>
+            <div>
+              <div style="font-size:14px;font-weight:600">End-to-End Encryption</div>
+              <div style="font-size:12px;color:var(--text3)">AES-256 + TLS 1.3</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VOICE QUALITY -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Voice Quality</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Sounds like you, not a robot</h2>
+      <p style="font-size:18px;color:var(--text2)">Our voice cloning preserves your unique characteristics.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:32px;margin-bottom:16px">🎤</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Tone</div>
+        <div style="font-size:13px;color:var(--text2)">Your natural speaking tone is preserved across languages.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:32px;margin-bottom:16px">😊</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Emotion</div>
+        <div style="font-size:13px;color:var(--text2)">Excitement, urgency, warmth — all conveyed naturally.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:32px;margin-bottom:16px">🗣️</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Pace</div>
+        <div style="font-size:13px;color:var(--text2)">Your speaking speed and rhythm are maintained.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center">
+        <div style="font-size:32px;margin-bottom:16px">🎭</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Accent</div>
+        <div style="font-size:13px;color:var(--text2)">Your accent carries through for authentic conversations.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LANGUAGE MATRIX -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Languages</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">30+ language pairs</h2>
+      <p style="font-size:18px;color:var(--text2)">Every major world language, with more coming every month.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇺🇸</div>
+        <div style="font-size:13px;font-weight:600">English</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇪🇸</div>
+        <div style="font-size:13px;font-weight:600">Spanish</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇫🇷</div>
+        <div style="font-size:13px;font-weight:600">French</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇨🇳</div>
+        <div style="font-size:13px;font-weight:600">Mandarin</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇸🇦</div>
+        <div style="font-size:13px;font-weight:600">Arabic</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇮🇳</div>
+        <div style="font-size:13px;font-weight:600">Hindi</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇩🇪</div>
+        <div style="font-size:13px;font-weight:600">German</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇯🇵</div>
+        <div style="font-size:13px;font-weight:600">Japanese</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇰🇷</div>
+        <div style="font-size:13px;font-weight:600">Korean</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇧🇷</div>
+        <div style="font-size:13px;font-weight:600">Portuguese</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">🇷🇺</div>
+        <div style="font-size:13px;font-weight:600">Russian</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;position:relative">
+        <div style="font-size:24px;margin-bottom:8px">🌍</div>
+        <div style="font-size:13px;font-weight:600;color:var(--accent2)">20+ More</div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:32px">
+      <a href="#" style="color:var(--accent2);font-size:15px;font-weight:600;text-decoration:none">Request a language →</a>
+    </div>
+  </div>
+</section>
+
+<!-- SPEED COMPARISON -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Speed</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Faster than human reaction</h2>
+      <p style="font-size:18px;color:var(--text2)">TransVoix translates faster than you can blink.</p>
+    </div>
+    
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:48px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:32px;text-align:center">
+        <div>
+          <div style="font-size:48px;font-weight:900;color:var(--text);margin-bottom:8px">187<span style="font-size:24px;color:var(--accent2)">ms</span></div>
+          <div style="font-size:14px;color:var(--text2)">TransVoix</div>
+          <div style="margin-top:12px;height:8px;background:rgba(124,58,237,0.3);border-radius:4px;overflow:hidden">
+            <div style="width:18%;height:100%;background:linear-gradient(90deg,var(--accent),var(--pink));border-radius:4px"></div>
+          </div>
+        </div>
+        
+        <div>
+          <div style="font-size:48px;font-weight:900;color:var(--text3);margin-bottom:8px">300<span style="font-size:24px">ms</span></div>
+          <div style="font-size:14px;color:var(--text3)">Human blink</div>
+          <div style="margin-top:12px;height:8px;background:rgba(100,100,120,0.2);border-radius:4px;overflow:hidden">
+            <div style="width:30%;height:100%;background:var(--text3);border-radius:4px"></div>
+          </div>
+        </div>
+        
+        <div>
+          <div style="font-size:48px;font-weight:900;color:var(--text3);margin-bottom:8px">3-5<span style="font-size:24px">sec</span></div>
+          <div style="font-size:14px;color:var(--text3)">Traditional interpreter</div>
+          <div style="margin-top:12px;height:8px;background:rgba(100,100,120,0.2);border-radius:4px;overflow:hidden">
+            <div style="width:100%;height:100%;background:var(--text3);border-radius:4px"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top:32px;text-align:center">
+        <div style="font-size:13px;color:var(--text3)">TransVoix is faster than a human blink and 20x faster than a traditional interpreter.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GLOBAL REACH -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Global Reach</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Connecting the world</h2>
+      <p style="font-size:18px;color:var(--text2)">Real-time translation across continents.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🌎</div>
+        <div style="font-size:24px;font-weight:800;margin-bottom:8px">Americas</div>
+        <div style="font-size:14px;color:var(--text2)">English, Spanish, Portuguese, French</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🌍</div>
+        <div style="font-size:24px;font-weight:800;margin-bottom:8px">Europe & Africa</div>
+        <div style="font-size:14px;color:var(--text2)">English, French, German, Arabic, Swahili</div>
+      </div>
+      
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">🌏</div>
+        <div style="font-size:24px;font-weight:800;margin-bottom:8px">Asia Pacific</div>
+        <div style="font-size:14px;color:var(--text2)">Mandarin, Hindi, Japanese, Korean</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROGRESS -->
+<section style="padding:120px 48px;background:var(--bg2)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Progress</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">What we've built</h2>
+      <p style="font-size:18px;color:var(--text2)">Key milestones in our journey to break language barriers.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--accent2);font-weight:600;margin-bottom:12px">Voice Cloning</div>
+        <div style="font-size:36px;font-weight:900;margin-bottom:8px">2 sec</div>
+        <div style="font-size:14px;color:var(--text2)">Initial voice clone time. Preserves emotion and speaking style.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--pink2);font-weight:600;margin-bottom:12px">Translation Quality</div>
+        <div style="font-size:36px;font-weight:900;margin-bottom:8px">3.5+/5</div>
+        <div style="font-size:14px;color:var(--text2)">Internal benchmark score across 30 language pairs.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--green);font-weight:600;margin-bottom:12px">Beta Users</div>
+        <div style="font-size:36px;font-weight:900;margin-bottom:8px">500+</div>
+        <div style="font-size:14px;color:var(--text2)">Active beta testers across healthcare, call centers, and education.</div>
+      </div>
+      
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px">
+        <div style="font-size:13px;color:var(--blue);font-weight:600;margin-bottom:12px">Uptime</div>
+        <div style="font-size:36px;font-weight:900;margin-bottom:8px">99.97%</div>
+        <div style="font-size:14px;color:var(--text2)">Enterprise-grade reliability. SOC 2 compliant infrastructure.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section style="padding:120px 48px;background:var(--bg)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-header" style="margin-bottom:64px">
+      <div class="tag">Roadmap</div>
+      <h2 style="font-size:44px;font-weight:800;margin-bottom:16px">Where we're headed</h2>
+      <p style="font-size:18px;color:var(--text2)">Our journey to break every language barrier.</p>
+    </div>
+    
+    <div style="position:relative;padding-left:40px">
+      <!-- Timeline line -->
+      <div style="position:absolute;left:15px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--accent),var(--pink))"></div>
+      
+      <!-- Q1 2026 -->
+      <div style="position:relative;margin-bottom:48px">
+        <div style="position:absolute;left:-33px;top:4px;width:16px;height:16px;background:var(--accent);border-radius:50%;border:3px solid var(--bg)"></div>
+        <div style="font-size:13px;color:var(--accent2);font-weight:600;margin-bottom:8px">Q1 2026 — Completed</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Beta Launch</div>
+        <div style="font-size:15px;color:var(--text2);line-height:1.6">Launched with 6 languages, voice cloning, and sub-200ms latency. 500+ beta users onboarded.</div>
+      </div>
+      
+      <!-- Q2 2026 -->
+      <div style="position:relative;margin-bottom:48px">
+        <div style="position:absolute;left:-33px;top:4px;width:16px;height:16px;background:var(--pink);border-radius:50%;border:3px solid var(--bg)"></div>
+        <div style="font-size:13px;color:var(--pink2);font-weight:600;margin-bottom:8px">Q2 2026 — In Progress</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Enterprise Features</div>
+        <div style="font-size:15px;color:var(--text2);line-height:1.6">SOC 2 certification, API access, custom integrations, and group calls up to 4 participants.</div>
+      </div>
+      
+      <!-- Q3 2026 -->
+      <div style="position:relative;margin-bottom:48px">
+        <div style="position:absolute;left:-33px;top:4px;width:16px;height:16px;background:var(--text3);border-radius:50%;border:3px solid var(--bg)"></div>
+        <div style="font-size:13px;color:var(--text3);font-weight:600;margin-bottom:8px">Q3 2026 — Planned</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Mobile App Launch</div>
+        <div style="font-size:15px;color:var(--text2);line-height:1.6">Native iOS and Android apps with background translation, call recording integration, and offline mode.</div>
+      </div>
+      
+      <!-- Q4 2026 -->
+      <div style="position:relative">
+        <div style="position:absolute;left:-33px;top:4px;width:16px;height:16px;background:var(--text3);border-radius:50%;border:3px solid var(--bg)"></div>
+        <div style="font-size:13px;color:var(--text3);font-weight:600;margin-bottom:8px">Q4 2026 — Planned</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">50+ Languages</div>
+        <div style="font-size:15px;color:var(--text2);line-height:1.6">Expand to 50+ language pairs including rare languages. Launch HIPAA certification for healthcare.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="inner">
+    <div class="section-header">
+      <div class="tag">FAQ</div>
+      <h2>Questions? Answers.</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          How does TransVoix preserve my voice?
+          <span class="toggle">+</span>
+        </div>
+        <div class="faq-a">TransVoix uses real-time voice cloning technology. When you speak, we analyze your voice characteristics and generate speech in the target language that sounds like you. The process takes under 2 seconds for initial cloning and runs continuously during the call.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Is my data stored?
+          <span class="toggle">+</span>
+        </div>
+        <div class="faq-a">No. TransVoix processes audio in real-time and immediately discards it. We never store audio recordings, transcripts, or voice models. Your conversations are yours alone.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          What languages do you support?
+          <span class="toggle">+</span>
+        </div>
+        <div class="faq-a">We currently support 30+ language pairs including English, Spanish, French, Mandarin, Arabic, Hindi, German, Japanese, Korean, and more. We are continuously adding new languages based on demand.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Do I need to download an app?
+          <span class="toggle">+</span>
+        </div>
+        <div class="faq-a">No. TransVoix works through your existing phone. Just dial through our service or add us to your current phone system. No downloads, no setup, no hardware changes.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Is TransVoix HIPAA compliant?
+          <span class="toggle">+</span>
+        </div>
+        <div class="faq-a">TransVoix is SOC 2 Type II compliant and we are actively working toward HIPAA certification. For healthcare organizations with specific compliance needs, contact our sales team for a custom solution.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERS -->
+<section style="padding:80px 48px;background:var(--bg)">
+  <div style="max-width:1000px;margin:0 auto;text-align:center">
+    <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:3px;font-weight:600;margin-bottom:40px">Trusted by teams at</div>
+    <div style="display:flex;gap:64px;justify-content:center;align-items:center;flex-wrap:wrap;opacity:0.4">
+      <span style="font-size:24px;font-weight:700;color:var(--text2)">Microsoft</span>
+      <span style="font-size:24px;font-weight:700;color:var(--text2)">Google</span>
+      <span style="font-size:24px;font-weight:700;color:var(--text2)">Amazon</span>
+      <span style="font-size:24px;font-weight:700;color:var(--text2)">Meta</span>
+      <span style="font-size:24px;font-weight:700;color:var(--text2)">Apple</span>
+    </div>
+    <div style="margin-top:24px;font-size:13px;color:var(--text3);font-style:italic">* Simulated for demo purposes — actual client logos would appear here</div>
+  </div>
+</section>
+
+<!-- BUILT WITH -->
+<section style="padding:80px 48px;background:var(--bg2)">
+  <div style="max-width:1000px;margin:0 auto;text-align:center">
+    <div style="font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:3px;font-weight:600;margin-bottom:32px">Built With</div>
+    <div style="display:flex;gap:48px;justify-content:center;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:28px">⚡</div>
+        <div style="font-size:13px;color:var(--text3)">WebRTC</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:28px">🧠</div>
+        <div style="font-size:13px;color:var(--text3)">Transformer Models</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:28px">🎤</div>
+        <div style="font-size:13px;color:var(--text3)">Voice Cloning</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:28px">☁️</div>
+        <div style="font-size:13px;color:var(--text3)">Edge Computing</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:28px">🔒</div>
+        <div style="font-size:13px;color:var(--text3)">E2E Encryption</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta">
+  <div class="inner">
+    <h2>Ready to speak<br>every language?</h2>
+    <p>Join 500+ users who are already having real conversations across languages. Start free, no credit card required.</p>
+    <div class="cta-buttons">
+      <a href="#" class="btn btn-primary">Try It Free →</a>
+      <a href="#" class="btn btn-secondary">Book a Demo</a>
+    </div>
+  </div>
+</section>
+
+<!-- SCROLL REVEAL + COUNTER ANIMATION -->
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Counter animation
+function animateCounter(el, target, suffix = '') {
+  let current = 0;
+  const increment = target / 60;
+  const timer = setInterval(() => {
+    current += increment;
+    if (current >= target) {
+      current = target;
+      clearInterval(timer);
+    }
+    el.textContent = Math.floor(current) + suffix;
+  }, 16);
+}
+
+// Typing animation for chat
+const typingBubbles = document.querySelectorAll('.bubble');
+let currentBubble = 0;
+
+function showNextBubble() {
+  if (currentBubble < typingBubbles.length) {
+    typingBubbles[currentBubble].style.opacity = '1';
+    typingBubbles[currentBubble].style.transform = 'translateY(0)';
+    currentBubble++;
+  }
+}
+
+typingBubbles.forEach(bubble => {
+  bubble.style.opacity = '0';
+  bubble.style.transform = 'translateY(10px)';
+  bubble.style.transition = 'all 0.5s ease';
+});
+
+setTimeout(() => {
+  showNextBubble();
+  setInterval(showNextBubble, 1500);
+}, 1000);
+
+// Smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
+// FAQ toggle
+document.querySelectorAll('.faq-q').forEach(q => {
+  q.addEventListener('click', () => {
+    const item = q.parentElement;
+    const isOpen = item.classList.contains('open');
+    
+    // Close all
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    
+    // Toggle clicked
+    if (!isOpen) {
+      item.classList.add('open');
+    }
+  });
+});
+
+// Add reveal class to sections
+document.addEventListener('DOMContentLoaded', () => {
+  const sections = document.querySelectorAll('.section-header, .feature-card, .use-case-card, .step, .price-card, .comparison-card, .security-card, .faq-item');
+  sections.forEach((el, i) => {
+    el.classList.add('reveal');
+    el.style.transitionDelay = `${(i % 6) * 0.1}s`;
+  });
+  
+  // Re-observe after adding classes
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+});
+</script>
+
+<!-- FOOTER -->
+<footer>
+  <div class="left">
+    <div class="logo-icon" style="width:28px;height:28px;font-size:14px">🌍</div>
+    <span class="name">TransVoix</span>
+    <span class="copy">© 2026. All rights reserved.</span>
+  </div>
+  <div class="right">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Security</a>
+    <a href="#">Contact</a>
+    <a href="#">LinkedIn</a>
+  </div>
+</footer>
+
+<!-- STICKY CTA BAR -->
+<div id="sticky-cta" style="position:fixed;bottom:0;left:0;right:0;z-index:99;background:rgba(6,6,11,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:16px 48px;display:flex;align-items:center;justify-content:space-between;transform:translateY(100%);transition:transform 0.3s ease">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🌍</div>
+    <div>
+      <div style="font-size:15px;font-weight:700">TransVoix</div>
+      <div style="font-size:12px;color:var(--text3)">Real-time voice translation</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px">
+    <a href="#" class="btn btn-secondary" style="padding:10px 20px;font-size:13px">Book a Demo</a>
+    <a href="#" class="btn btn-primary btn-glow" style="padding:10px 20px;font-size:13px">Try Free →</a>
+  </div>
+</div>
+
+<!-- BACK TO TOP -->
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="position:fixed;bottom:80px;right:24px;z-index:98;width:44px;height:44px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text2);cursor:pointer;opacity:0;transform:translateY(20px);transition:all 0.3s">
+  ↑
+</button>
+
+<script>
+// Sticky CTA bar
+const stickyCta = document.getElementById('sticky-cta');
+const backToTop = document.getElementById('back-to-top');
+
+window.addEventListener('scroll', () => {
+  const scrolled = window.scrollY;
+  
+  // Show sticky CTA after scrolling 500px
+  if (scrolled > 500) {
+    stickyCta.style.transform = 'translateY(0)';
+  } else {
+    stickyCta.style.transform = 'translateY(100%)';
+  }
+  
+  // Show back to top after scrolling 1000px
+  if (scrolled > 1000) {
+    backToTop.style.opacity = '1';
+    backToTop.style.transform = 'translateY(0)';
+  } else {
+    backToTop.style.opacity = '0';
+    backToTop.style.transform = 'translateY(20px)';
+  }
+});
+</script>
+
+</body>
+</html>
