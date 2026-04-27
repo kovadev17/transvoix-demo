@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VeloxStudio Lead Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f1a;color:#e0e0e0;padding:2rem}
+h1{color:#00d4ff;margin-bottom:0.5rem}
+.subtitle{color:#888;margin-bottom:2rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;margin-bottom:2rem}
+.card{background:#1a1a2e;border-radius:12px;padding:1.5rem;border:1px solid #2a2a4a}
+.card h2{color:#00d4ff;font-size:1.1rem;margin-bottom:1rem}
+.stat{font-size:2.5rem;font-weight:700;color:#fff}
+.stat-label{color:#888;font-size:0.9rem}
+table{width:100%;border-collapse:collapse;margin-top:1rem}
+th{text-align:left;padding:0.75rem;color:#00d4ff;font-size:0.85rem;border-bottom:2px solid #2a2a4a}
+td{padding:0.75rem;border-bottom:1px solid #2a2a4a;font-size:0.9rem}
+tr:hover{background:#252545}
+.status-badge{display:inline-block;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.75rem;font-weight:600}
+.status-ready{background:#1a472a;color:#4ade80}
+.status-sent{background:#1a3a5c;color:#60a5fa}
+.status-urgent{background:#5c1a1a;color:#f87171}
+.status-demo{background:#5c4a1a;color:#fbbf24}
+a{color:#00d4ff;text-decoration:none}
+a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<h1>VeloxStudio Lead Dashboard</h1>
+<p class="subtitle">Updated: April 27, 2026 | Kova @ VeloxStudio</p>
+
+<div class="grid">
+<div class="card">
+<h2>Total Leads</h2>
+<div class="stat">20</div>
+<div class="stat-label">Tracked in database</div>
+</div>
+<div class="card">
+<h2>Demos Built</h2>
+<div class="stat">11</div>
+<div class="stat-label">Live on GitHub Pages</div>
+</div>
+<div class="card">
+<h2>Emails Ready</h2>
+<div class="stat">11</div>
+<div class="stat-label">In queue, copy-paste ready</div>
+</div>
+<div class="card">
+<h2>Active Conversations</h2>
+<div class="stat">3</div>
+<div class="stat-label">Restless Worlds, Tobi, CodeZero</div>
+</div>
+</div>
+
+<div class="card">
+<h2>All Leads</h2>
+<table>
+<tr><th>Company</th><th>Revenue</th><th>Email</th><th>Status</th><th>Demo</th></tr>
+<tr><td>Dumble</td><td>$10K/mo</td><td>contact@dumble.fr</td><td><span class="status-badge status-ready">Ready</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/dumble_french_demo.html">View</a></td></tr>
+<tr><td>StatusBird</td><td>$8K/mo</td><td>support@statusbird.io</td><td><span class="status-badge status-ready">Ready</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/statusbird_demo.html">View</a></td></tr>
+<tr><td>HireX</td><td>$45K/mo</td><td>NOT FOUND</td><td><span class="status-badge status-urgent">No Email</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/hirex_demo.html">View</a></td></tr>
+<tr><td>Polynya</td><td>Unknown</td><td>NOT FOUND</td><td><span class="status-badge status-urgent">No Email</span></td><td>-</td></tr>
+<tr><td>PatchWork</td><td>Unknown</td><td>support@usepatch.work</td><td><span class="status-badge status-ready">Ready</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/patchwork_app_demo.html">View</a></td></tr>
+<tr><td>AI Memory</td><td>Unknown</td><td>mishrasachit1@gmail.com</td><td><span class="status-badge status-ready">Ready</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/aimemory_app_demo.html">View</a></td></tr>
+<tr><td>RicciFlow</td><td>New</td><td>contact@ricciflow.io</td><td><span class="status-badge status-ready">Ready</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/ricciflow_twitter_demo.html">View</a></td></tr>
+<tr><td>Sweeper</td><td>Unknown</td><td>contact@sweeper.email</td><td><span class="status-badge status-ready">Ready</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/sweeper_demo.html">View</a></td></tr>
+<tr><td>Chunk</td><td>Unknown</td><td>support@chunkapp.net</td><td><span class="status-badge status-ready">Ready</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/chunk_app_demo.html">View</a></td></tr>
+<tr><td>KiteFlow</td><td>Unknown</td><td>mertkucukhuseyin90@gmail.com</td><td><span class="status-badge status-ready">Ready</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/kiteflow_app_demo.html">View</a></td></tr>
+<tr><td>Restless Worlds</td><td>Client</td><td>hello@meemyaserstudio.ae</td><td><span class="status-badge status-urgent">URGENT Follow-up</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/velox-demos/meem_yaser_manga_demo.html">View</a></td></tr>
+<tr><td>TransVoix</td><td>Client</td><td>tobias@transvoix.com</td><td><span class="status-badge status-demo">Demo Sent</span></td><td><a href="https://kovadev17.github.io/transvoix-demo/">View</a></td></tr>
+<tr><td>BookIt</td><td>Client</td><td>chris@bookitsms.com</td><td><span class="status-badge status-sent">Email Sent</span></td><td>-</td></tr>
+</table>
+</div>
+
+<div class="card" style="margin-top:1.5rem">
+<h2>Actions Needed</h2>
+<ul style="margin-top:0.5rem;padding-left:1.5rem;line-height:2">
+<li><strong style="color:#f87171">URGENT:</strong> Send follow-up to Restless Worlds (3+ days since last reply)</li>
+<li>Send 11 prepared emails via ProtonMail</li>
+<li>Post 4 Reddit comments for verified leads</li>
+<li>Find emails for HireX, Polynya</li>
+<li>Follow up with Tobi (TransVoix) in 24h if no reply</li>
+<li>Follow up with Chris (BookIt) in 48h if no reply</li>
+</ul>
+</div>
+
+</body>
+</html>
